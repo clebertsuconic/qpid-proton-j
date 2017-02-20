@@ -19,6 +19,7 @@
 package org.apache.qpid.proton.engine.impl;
 
 import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.*;
 import static org.junit.Assert.*;
 import static org.hamcrest.CoreMatchers.containsString;
 
@@ -34,8 +35,10 @@ import org.apache.qpid.proton.amqp.transport.Open;
 import org.apache.qpid.proton.codec.AMQPDefinedTypes;
 import org.apache.qpid.proton.codec.ByteBufferDecoder;
 import org.apache.qpid.proton.codec.DecodeException;
+import org.apache.qpid.proton.codec.DecoderFactory;
 import org.apache.qpid.proton.codec.DecoderImpl;
 import org.apache.qpid.proton.codec.EncoderImpl;
+import org.apache.qpid.proton.codec.ReadableBuffer;
 import org.apache.qpid.proton.engine.TransportException;
 import org.junit.Test;
 
@@ -55,9 +58,7 @@ public class SaslFrameParserTest
 
     public SaslFrameParserTest()
     {
-        DecoderImpl decoder = new DecoderImpl();
-        EncoderImpl encoder = new EncoderImpl(decoder);
-        AMQPDefinedTypes.registerAllTypes(decoder,encoder);
+        DecoderImpl decoder = DecoderFactory.getSingleton().getDecoder();
 
         _frameParser = new SaslFrameParser(_mockSaslFrameHandler, decoder);
         _saslFrameBody = new SaslInit();
@@ -163,8 +164,9 @@ public class SaslFrameParserTest
     {
         sendAmqpSaslHeader(_frameParserWithMockDecoder);
 
+        ReadableBuffer.ByteBufferReader bufferReader = ReadableBuffer.ByteBufferReader.allocate(10);
         String exceptionMessage = "dummy decode exception";
-        when(_mockDecoder.readObject()).thenThrow(new DecodeException(exceptionMessage));
+        when(_mockDecoder.readObject((ReadableBuffer)anyObject())).thenThrow(new DecodeException(exceptionMessage));
 
         // We send a valid frame but the mock decoder has been configured to reject it
         try {
@@ -189,9 +191,10 @@ public class SaslFrameParserTest
     public void testInputOfNonSaslFrame_causesErrorAndRefusesFurtherInput()
     {
         sendAmqpSaslHeader(_frameParserWithMockDecoder);
+        ReadableBuffer.ByteBufferReader bufferReader = ReadableBuffer.ByteBufferReader.allocate(10);
 
         FrameBody nonSaslFrame = new Open();
-        when(_mockDecoder.readObject()).thenReturn(nonSaslFrame);
+        when(_mockDecoder.readObject(bufferReader)).thenReturn(nonSaslFrame);
 
         // We send a valid frame but the mock decoder has been configured to reject it
         try {

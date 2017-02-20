@@ -45,6 +45,7 @@ import org.apache.qpid.proton.amqp.transport.Open;
 import org.apache.qpid.proton.amqp.transport.Role;
 import org.apache.qpid.proton.amqp.transport.Transfer;
 import org.apache.qpid.proton.codec.AMQPDefinedTypes;
+import org.apache.qpid.proton.codec.DecoderFactory;
 import org.apache.qpid.proton.codec.DecoderImpl;
 import org.apache.qpid.proton.codec.EncoderImpl;
 import org.apache.qpid.proton.engine.Connection;
@@ -98,9 +99,6 @@ public class TransportImpl extends EndpointImpl
     private TransportInput _inputProcessor;
     private TransportOutput _outputProcessor;
 
-    private DecoderImpl _decoder = new DecoderImpl();
-    private EncoderImpl _encoder = new EncoderImpl(_decoder);
-
     private int _maxFrameSize = DEFAULT_MAX_FRAME_SIZE;
     private int _remoteMaxFrameSize = 512;
     private int _channelMax       = CHANNEL_MAX_LIMIT;
@@ -145,9 +143,22 @@ public class TransportImpl extends EndpointImpl
     /**
      * Application code should use {@link org.apache.qpid.proton.engine.Transport.Factory#create()} instead
      */
-    public TransportImpl()
-    {
-        this(DEFAULT_MAX_FRAME_SIZE);
+    @Deprecated public TransportImpl() {
+        this(DEFAULT_MAX_FRAME_SIZE, DecoderFactory.getSingleton());
+
+    }
+
+
+    private final EncoderImpl encoderUsed;
+
+    private final DecoderImpl decoderUsed;
+
+    /**
+     * Creates a transport with the given maximum frame size.
+     * Note that the maximumFrameSize also determines the size of the output buffer.
+     */
+    public TransportImpl(int maxFrameSize) {
+        this(maxFrameSize, DecoderFactory.getSingleton());
     }
 
 
@@ -155,12 +166,19 @@ public class TransportImpl extends EndpointImpl
      * Creates a transport with the given maximum frame size.
      * Note that the maximumFrameSize also determines the size of the output buffer.
      */
-    TransportImpl(int maxFrameSize)
-    {
-        AMQPDefinedTypes.registerAllTypes(_decoder, _encoder);
+    public TransportImpl(int maxFrameSize, DecoderFactory factory) {
+        this(maxFrameSize, factory.getEncoder(), factory.getDecoder());
+    }
 
+    /**
+     * Creates a transport with the given maximum frame size.
+     * Note that the maximumFrameSize also determines the size of the output buffer.
+     */
+    public TransportImpl(int maxFrameSize, EncoderImpl encoder, DecoderImpl decoder) {
+        this.encoderUsed = encoder;
+        this.decoderUsed = decoder;
         _maxFrameSize = maxFrameSize;
-        _frameWriter = new FrameWriter(_encoder, _remoteMaxFrameSize,
+        _frameWriter = new FrameWriter(encoderUsed, _remoteMaxFrameSize,
                                        FrameWriter.AMQP_FRAME_TYPE,
                                        _protocolTracer,
                                        this);
@@ -171,7 +189,7 @@ public class TransportImpl extends EndpointImpl
         if(!_init)
         {
             _init = true;
-            _frameParser = new FrameParser(_frameHandler , _decoder, _maxFrameSize);
+            _frameParser = new FrameParser(_frameHandler , decoderUsed, _maxFrameSize);
             _inputProcessor = _frameParser;
             _outputProcessor = new TransportOutputAdaptor(this, _maxFrameSize);
         }
