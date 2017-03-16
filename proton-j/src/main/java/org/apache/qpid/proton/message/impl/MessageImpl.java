@@ -554,8 +554,20 @@ public class MessageImpl implements ProtonJMessage
     @Override
     public int decode(byte[] data, int offset, int length)
     {
+        final ByteBuffer buffer = ByteBuffer.wrap(data, offset, length);
+        decode(buffer);
+
+        return length-buffer.remaining();
+    }
+
+
+    public void decode(ByteBuffer byteBuffer) {
+        final ReadableBuffer buffer = new ReadableBuffer.ByteBufferReader(byteBuffer);
+        decode(buffer);
+    }
+
+    public void decode(ReadableBuffer buffer) {
         DecoderImpl decoder = DecoderFactory.getSingleton().getDecoder();
-        final ReadableBuffer buffer = new ReadableBuffer.ByteBufferReader(ByteBuffer.wrap(data, offset, length));
 
         _header = null;
         _deliveryAnnotations = null;
@@ -658,9 +670,6 @@ public class MessageImpl implements ProtonJMessage
             _footer = (Footer) section;
 
         }
-
-        return length-buffer.remaining();
-
     }
 
     @Override
