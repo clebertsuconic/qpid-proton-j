@@ -272,13 +272,13 @@ public abstract class LinkImpl extends EndpointImpl implements Link
     public void addCredit(int credit)
     {
         _credit+=credit;
-        new Exception("add Credit, now have " + _credit).printStackTrace(System.out);
+        System.out.println("add Credit, now have " + _credit);
     }
 
     public void setCredit(int credit)
     {
+        new Exception("set Credit, will have " + credit + ", used to have " + _credit).printStackTrace(System.out);
         _credit = credit;
-        new Exception("set Credit, now have " + _credit).printStackTrace(System.out);
     }
 
     boolean hasCredit()
@@ -289,13 +289,11 @@ public abstract class LinkImpl extends EndpointImpl implements Link
     void incrementCredit()
     {
         _credit++;
-        new Exception("Credit incremented, now have " + _credit).printStackTrace(System.out);
     }
 
     void decrementCredit()
     {
         _credit--;
-        new Exception("Credit decremented, now have " + _credit).printStackTrace(System.out);
     }
 
     @Override
